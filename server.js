@@ -5,6 +5,7 @@ require('dotenv').config();
 
 const express = require('express');
 const prisma = require('./db.js');
+const { hashPassword, comparePassword, generateToken, authenticateToken } = require('./auth.js');
 
 const app = express();
 const PORT = 8000;
@@ -218,7 +219,7 @@ app.put('/api/users/:id', async (req, res) => {
 	
 	res.status(500).json({
 	    error: 'Failed to update user',
-	    edtails: error.message
+	    details: error.message
 	});
 
     }
@@ -317,6 +318,136 @@ app.delete('/api/posts/:id', async (req, res) => {
 	    error: 'Failed to delete post',
 	    details: error.message
 	});
+    }
+});
+
+
+// User Registration
+app.post('/api/auth/register', async (req, res) => {
+    try {
+	const { email, username, password, firstName, lastName } = req.body;
+	
+	// check if user already exists
+	const existingUser = await prisma.user.findFirst({
+	    where: {
+	        OR: [
+		    { email: email }, 
+		    { username: username }
+		]
+	    }
+	});
+
+	if(existingUser){
+	    return res.status(400).json({
+	        error: 'User with this email or username already exists'
+	    });
+	}
+
+	// Hash password
+	const hashedPassword = await hashPassword(password);
+	
+	// Create user
+	const newUser = await prisma.user.create({
+	    data: {
+	        email,
+		username,
+		password: hashedPassword,
+		firstName,
+		lastName
+	    }
+	});
+
+	// Generate token
+	const token = generateToken(newUser.id);
+
+	// Return user without password
+	const { password: _, ...userWithoutPassword } = newUser;
+
+	res.status(201).json({
+	    message: 'User registered successfully',
+	    user: userWithoutPassword,
+	    token
+	});
+
+    } catch (error) {
+	console.error('Registration error: ', error);
+	res.status(500).json({ 
+	    error: "Failed to register user",
+	    details: error.message
+	});
+    }
+});
+
+
+// User Login
+app.post('/api/auth/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        
+        // Find user by email
+        const user = await prisma.user.findUnique({
+	    where: { email: email }
+        });
+        
+        if (!user) {
+            return res.status(401).json({ error: 'Invalid email or password' });
+        }
+        
+        // Check password
+        const isPasswordValid = await comparePassword(password, user.password);
+        
+        if (!isPasswordValid) {
+            return res.status(401).json({ error: 'Invalid email or password' });
+        }
+        
+        // Generate token
+        const token = generateToken(user.id);
+        
+        // Return user without password
+        const { password: _, ...userWithoutPassword } = user;
+        
+        res.json({
+            message: 'Login successful',
+            user: userWithoutPassword,
+            token
+        });
+        
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({ 
+            error: 'Failed to login',
+            details: error.message 
+        });
+    }
+});
+
+// Get current user profile (protected route)
+app.get('/api/auth/profile', authenticateToken, async (req, res) => {
+    try {
+        const user = await prisma.user.findUnique({
+            where: { id: req.userId },
+            select: {
+                id: true,
+                email: true,
+                username: true,
+                firstName: true,
+                lastName: true,
+                createdAt: true,
+                updatedAt: true
+            }
+        });
+        
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        
+        res.json(user);
+    } catch (error) {
+        console.error('Profile error:', error);
+        res.status(500).json({ 
+            error: 'Failed to get profile',
+            details: error.message 
+        });
     }
 });
 
