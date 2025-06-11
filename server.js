@@ -193,6 +193,134 @@ app.get('/api/users/:id/posts', async (req, res) => {
 });
 
 
+// Update a user
+app.put('/api/users/:id', async (req, res) => {
+    try {
+	const userId = parseInt(req.params.id);
+	const { username, email, firstName, lastName } = req.body;
+
+	const updateUser = await prisma.user.update({
+	    where: { id: userId },
+	    data: {
+	        email,
+		username, 
+		firstName, 
+		lastName
+	    }
+	});
+
+	res.json(updateUser);
+    } catch  (error) {
+	console.error('Update user error: ', error);
+	if (error.code === 'P2025'){
+	    return res.status(404).json({ error: 'User not found' });
+	}
+	
+	res.status(500).json({
+	    error: 'Failed to update user',
+	    edtails: error.message
+	});
+
+    }
+});
+
+
+// Delete a user
+app.delete('/api/users/:id', async (req, res) => {
+    try {
+	const userId = parseInt(req.params.id);
+
+	// delete all posts by this user
+	await prisma.post.deleteMany({
+	    where: { authorId: userId }
+	});
+
+	// delete a user
+	await prisma.user.delete({
+	    where: { id: userId }
+	});
+
+	res.json({ message: "User and all their posts deleted successfully!" });
+    } catch (error) {
+	console.error('Delete user error: ', error);
+	if ( error.code === 'P2025' ){
+	    return res.status(404).json({ error: 'User not found' });
+	}
+
+	res.status(500).json({ 
+	    error: "Failed to delete user",
+	    details: error.message
+	});
+
+    }
+});
+
+
+// Update a post
+app.put('/api/posts/:id', async (req, res) => {
+    try {
+	const postId = parseInt(req.params.id);
+	const { title, content, published } = req.body;
+
+	const updatePost = await prisma.post.update({
+	    where: { id: postId },
+	    data: {
+	        title,
+		content,
+		published
+	    },
+	    include: {
+	        author: {
+		    select: { 
+		        id: true,
+			username: true,
+			firstName: true,
+			lastName: true
+		    }
+		}
+	    }
+	});
+
+	res.json(updatePost);
+    } catch (error) {
+	console.error('Update post error: ', error);
+	if (error.code === 'P2025' ){
+	    return res.status(404).json({ error: 'Post not found' });
+	}
+
+	res.status(500).json({
+	    error: 'Failed to update post',
+	    details: error.message
+	});
+    }
+});
+
+
+// Delete a post
+app.delete('/api/posts/:id', async (req, res) => {
+    try {
+	const postId = parseInt(req.params.id);
+	
+	await prisma.post.delete({
+	    where: { id: postId }
+	});
+
+	res.json({ message: 'Post deleted successfully!' });
+
+    } catch (error) {
+	console.error('Delete post error: ', error);
+	if(error.code === 'P2025'){
+	    return res.status(404).json({ error: 'Post not found' });
+	}
+
+	res.status(500).json({
+	    error: 'Failed to delete post',
+	    details: error.message
+	});
+    }
+});
+
+
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });
