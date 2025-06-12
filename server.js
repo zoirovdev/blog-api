@@ -6,6 +6,7 @@ require('dotenv').config();
 const express = require('express');
 const prisma = require('./db.js');
 const { hashPassword, comparePassword, generateToken, authenticateToken } = require('./auth.js');
+const { registerSchema, loginSchema, createPostSchema, updatePostSchema, validate } = require('./validation.js');
 
 const app = express();
 const PORT = 8000;
@@ -121,50 +122,45 @@ app.get('/api/posts/:id', async (req, res) => {
 });
 
 
-// Create a new post
-app.post('/api/posts', async (req, res) => {
+// Create a new post (PROTECTED - requires authentication)
+app.post('/api/posts', authenticateToken, async (req, res) => {
     try {
-	console.log('Creating a post with data: ', req.body);
-	const { title, content, authorId, published = false } = req.body;
-	
-	// Check if author exists
-	const author = await prisma.user.findUnique({ 
-	    where: { id: parseInt(authorId) }
-	});
-	
-	if (!author){
-	    return res.status(400).json({ error: 'Author not found' });
-	}
-	
-	const newPost = await prisma.post.create({
-	    data: {
-	        title,
-		content,
-		published,
-		authorId: parseInt(authorId)
-	    },
-	    include: {
-	        author: {
-		    select: {
-		        id: true,
-			username: true,
-			firstName: true,
-			lastName: true
-		    }
-		}
-	    }
-	});
+        console.log('Creating a post with data: ', req.body);
+        console.log('Authenticated user ID:', req.userId);
+        
+        const { title, content, published = false } = req.body;
+        
+        // Use the authenticated user's ID as the author
+        const authorId = req.userId;
+        
+        const newPost = await prisma.post.create({
+            data: {
+                title,
+                content,
+                published,
+                authorId: authorId
+            },
+            include: {
+                author: {
+                    select: {
+                        id: true,
+                        username: true,
+                        firstName: true,
+                        lastName: true
+                    }
+                }
+            }
+        });
 
-	res.status(201).json(newPost);
+        res.status(201).json(newPost);
     } catch (error) {
-	console.error('Create post error:', error);
-	res.status(500).json({ 
-	    error: 'Failed to create post',
-	    details: error.message
-	});
+        console.error('Create post error:', error);
+        res.status(500).json({ 
+            error: 'Failed to create post',
+            details: error.message
+        });
     }
 });
-
 
 // Get all posts by a specific user
 app.get('/api/users/:id/posts', async (req, res) => {
