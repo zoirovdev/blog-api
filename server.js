@@ -450,7 +450,7 @@ app.post('/api/posts', createPostLimiter, authenticateToken, validate(createPost
 
 /**
  * @swagger
- * /api/users/{id}/posts:
+ * /api/user/posts:
  *   get:
  *     summary: Get all posts by a specific user
  *     tags: [Posts]
@@ -474,11 +474,35 @@ app.post('/api/posts', createPostLimiter, authenticateToken, validate(createPost
  *         description: Server error
  */
 // Get all posts by a specific user
-app.get('/api/users/:id/posts', async (req, res) => {
+app.get('/api/user/posts', async (req, res) => {
     try {
-        const userId = parseInt(req.params.id);
+        console.log('Fetching posts with query params:', req.query);
+        
+        // Extract query parameters with defaults
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const published = req.query.published;
+        const authorId = req.query.authorId;
+        
+        // Calculate offset for pagination
+        const offset = (page - 1) * limit;
+        
+        // Build where conditions
+        const whereConditions = {};
+        
+        // Filter by published status
+        if (published !== undefined) {
+            whereConditions.published = published === 'true';
+        }
+        
+        // Filter by author
+        if (authorId) {
+            whereConditions.authorId = parseInt(authorId);
+        }
+	
+        // Get posts with pagination
         const posts = await prisma.post.findMany({
-            where: { authorId: userId },
+            where: whereConditions,
             include: {
                 author: {
                     select: {
@@ -489,13 +513,41 @@ app.get('/api/users/:id/posts', async (req, res) => {
                     }
                 }
             },
-            orderBy: { createdAt: 'desc' }
+            orderBy: { createdAt: 'desc' }, // Newest first
+            skip: offset,
+            take: limit
         });
-        res.json(posts);
+        
+        // Get total count for pagination info
+        const totalPosts = await prisma.post.count({
+            where: whereConditions
+        });
+        
+        // Calculate pagination info
+        const totalPages = Math.ceil(totalPosts / limit);
+        const hasNextPage = page < totalPages;
+        const hasPrevPage = page > 1;
+        
+        res.json({
+            posts,
+            pagination: {
+                currentPage: page,
+                totalPages,
+                totalPosts,
+                postsPerPage: limit,
+                hasNextPage,
+                hasPrevPage
+            },
+            filters: {
+                published: published || null,
+                authorId: authorId || null
+            }
+        });
+        
     } catch (error) {
-        console.error('Fetch user posts error: ', error);
+        console.error('Fetch posts error: ', error);
         res.status(500).json({
-            error: 'Failed to fetch user posts',
+            error: 'Failed to fetch posts',
             details: error.message
         });
     }
