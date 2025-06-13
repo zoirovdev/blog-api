@@ -3,6 +3,7 @@
 require('dotenv').config();
 
 const express = require('express');
+const cors = require('cors');
 const prisma = require('./db.js');
 const { hashPassword, comparePassword, generateToken, authenticateToken } = require('./auth.js');
 const { registerSchema, loginSchema, createPostSchema, updatePostSchema, validate } = require('./validation.js');
@@ -11,6 +12,11 @@ const { specs, swaggerUi } = require('./swagger');
 
 const app = express();
 const PORT = process.env.PORT || 8000;
+
+// Add CORS middleware BEFORE your routes
+app.use(cors({
+  origin: 'http://localhost:5173' // Your React app's URL
+}))
 
 // Middleware to parse JSON bodies
 app.use(express.json());
@@ -48,7 +54,7 @@ app.get('/', (req, res) => {
  * @swagger
  * /api/posts:
  *   get:
- *     summary: Get all posts with pagination and search
+ *     summary: Get all posts with pagination
  *     tags: [Posts]
  *     parameters:
  *       - in: query
@@ -63,11 +69,6 @@ app.get('/', (req, res) => {
  *           type: integer
  *           default: 10
  *         description: Number of posts per page
- *       - in: query
- *         name: search
- *         schema:
- *           type: string
- *         description: Search in title and content
  *       - in: query
  *         name: published
  *         schema:
@@ -108,7 +109,7 @@ app.get('/', (req, res) => {
  *                 filters:
  *                   type: object
  */
-// Get all posts with pagination and search
+// Get all posts with pagination
 app.get('/api/posts', async (req, res) => {
     try {
         console.log('Fetching posts with query params:', req.query);
@@ -116,7 +117,6 @@ app.get('/api/posts', async (req, res) => {
         // Extract query parameters with defaults
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
-        const search = req.query.search || '';
         const published = req.query.published;
         const authorId = req.query.authorId;
         
@@ -125,14 +125,6 @@ app.get('/api/posts', async (req, res) => {
         
         // Build where conditions
         const whereConditions = {};
-        
-        // Add search condition (searches in title and content)
-        if (search) {
-            whereConditions.OR = [
-                { title: { contains: search, mode: 'insensitive' } },
-                { content: { contains: search, mode: 'insensitive' } }
-            ];
-        }
         
         // Filter by published status
         if (published !== undefined) {
@@ -183,7 +175,6 @@ app.get('/api/posts', async (req, res) => {
                 hasPrevPage
             },
             filters: {
-                search: search || null,
                 published: published || null,
                 authorId: authorId || null
             }
