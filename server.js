@@ -112,8 +112,6 @@ app.get('/', (req, res) => {
 // Get all posts with pagination
 app.get('/api/posts', async (req, res) => {
     try {
-        console.log('Fetching posts with query params:', req.query);
-        
         // Extract query parameters with defaults
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
@@ -181,7 +179,6 @@ app.get('/api/posts', async (req, res) => {
         });
         
     } catch (error) {
-        console.error('Fetch posts error: ', error);
         res.status(500).json({
             error: 'Failed to fetch posts',
             details: error.message
@@ -303,7 +300,6 @@ app.get('/api/posts/search', async (req, res) => {
         });
         
     } catch (error) {
-        console.error('Search error:', error);
         res.status(500).json({
             error: 'Search failed',
             details: error.message
@@ -360,8 +356,7 @@ app.get('/api/posts/:id', async (req, res) => {
 
         res.json(post);
     } catch (error) {
-        console.error('Fetch post error:', error);
-        res.status(500).json({
+           res.status(500).json({
             error: 'Failed to fetch post',
             details: error.message
         });
@@ -411,9 +406,6 @@ app.get('/api/posts/:id', async (req, res) => {
 // Create a new post (PROTECTED with validation)
 app.post('/api/posts', createPostLimiter, authenticateToken, validate(createPostSchema), async (req, res) => {
     try {
-        console.log('Creating a post with data: ', req.body);
-        console.log('Authenticated user ID:', req.userId);
-        
         const { title, content, published = false } = req.body;
         
         // Use the authenticated user's ID as the author
@@ -440,7 +432,6 @@ app.post('/api/posts', createPostLimiter, authenticateToken, validate(createPost
 
         res.status(201).json(newPost);
     } catch (error) {
-        console.error('Create post error:', error);
         res.status(500).json({ 
             error: 'Failed to create post',
             details: error.message
@@ -476,8 +467,6 @@ app.post('/api/posts', createPostLimiter, authenticateToken, validate(createPost
 // Get all posts by a specific user
 app.get('/api/user/posts', async (req, res) => {
     try {
-        console.log('Fetching posts with query params:', req.query);
-        
         // Extract query parameters with defaults
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
@@ -545,7 +534,6 @@ app.get('/api/user/posts', async (req, res) => {
         });
         
     } catch (error) {
-        console.error('Fetch posts error: ', error);
         res.status(500).json({
             error: 'Failed to fetch posts',
             details: error.message
@@ -638,7 +626,6 @@ app.put('/api/posts/:id', authenticateToken, validate(updatePostSchema), async (
 
         res.json(updatePost);
     } catch (error) {
-        console.error('Update post error: ', error);
         if (error.code === 'P2025' ){
             return res.status(404).json({ error: 'Post not found' });
         }
@@ -708,7 +695,6 @@ app.delete('/api/posts/:id', authenticateToken, async (req, res) => {
         res.json({ message: 'Post deleted successfully!' });
 
     } catch (error) {
-        console.error('Delete post error: ', error);
         if(error.code === 'P2025'){
             return res.status(404).json({ error: 'Post not found' });
         }
@@ -821,7 +807,6 @@ app.post('/api/auth/register', authLimiter, validate(registerSchema), async (req
         });
 
     } catch (error) {
-        console.error('Registration error: ', error);
         res.status(500).json({ 
             error: "Failed to register user",
             details: error.message
@@ -903,7 +888,6 @@ app.post('/api/auth/login', authLimiter, validate(loginSchema), async (req, res)
         });
         
     } catch (error) {
-        console.error('Login error:', error);
         res.status(500).json({ 
             error: 'Failed to login',
             details: error.message 
@@ -953,7 +937,6 @@ app.get('/api/auth/profile', authenticateToken, async (req, res) => {
         
         res.json(user);
     } catch (error) {
-        console.error('Profile error:', error);
         res.status(500).json({ 
             error: 'Failed to get profile',
             details: error.message 
