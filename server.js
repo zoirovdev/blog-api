@@ -944,6 +944,234 @@ app.get('/api/auth/profile', authenticateToken, async (req, res) => {
     }
 });
 
+
+/**
+ * @swagger
+ * /api/posts/like:
+ *   post:
+ *     summary: Toggle like/unlike a post
+ *     tags: [Posts]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - postId
+ *               - userId
+ *             properties:
+ *               postId:
+ *                 type: integer
+ *                 description: ID of the post to like/unlike
+ *                 example: 1
+ *               userId:
+ *                 type: integer
+ *                 description: ID of the user performing the action
+ *                 example: 1
+ *     responses:
+ *       200:
+ *         description: Like toggled successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 liked:
+ *                   type: boolean
+ *                   example: true
+ *                 likeCount:
+ *                   type: integer
+ *                   example: 5
+ *                 message:
+ *                   type: string
+ *                   example: "Post liked"
+ *       404:
+ *         description: Post not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Post not found"
+ *       400:
+ *         description: Bad Request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Something went wrong"
+ *                 details:
+ *                   type: string
+ *                   example: "Error details"
+ */
+// Like a post
+app.post('/api/posts/like', async (req, res) => {
+  try {
+    const postId = parseInt(req.body.postId);
+    const userId = parseInt(req.body.userId); // Added parseInt for consistency
+    
+    // Validate input
+    if (!postId || !userId) {
+      return res.status(400).json({ error: 'postId and userId are required' });
+    }
+    
+    // Check if post exists
+    const post = await prisma.post.findUnique({
+      where: { id: postId }
+    });
+    
+    if (!post) {
+      return res.status(404).json({ error: 'Post not found' });
+    }
+    
+    const existingLike = await prisma.like.findUnique({
+      where: {
+        userId_postId: {
+          userId: userId,
+          postId: postId
+        }
+      }
+    });
+    
+    let liked;
+    if (existingLike) {
+      // Unlike the post
+      await prisma.like.delete({ where: { id: existingLike.id } });
+      liked = false;
+    } else {
+      // Like the post
+      await prisma.like.create({ data: { userId: userId, postId: postId } });
+      liked = true;
+    }
+    
+    // Get like count
+    const likeCount = await prisma.like.count({ where: { postId: postId } });
+    
+    res.status(200).json({ 
+      success: true,
+      liked: liked,
+      likeCount: likeCount,
+      message: liked ? 'Post liked' : 'Post unliked'
+    });
+  } catch (error) {
+    console.error('Like error:', error);
+    res.status(400).json({
+      error: 'Something went wrong',
+      details: error.message
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /api/posts/{id}/like-status:
+ *   get:
+ *     summary: Get like status for a post
+ *     tags: [Posts]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Post ID
+ *     responses:
+ *       200:
+ *         description: Like status retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 liked:
+ *                   type: boolean
+ *                   example: true
+ *                 likeCount:
+ *                   type: integer
+ *                   example: 5
+ *       404:
+ *         description: Post not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Post not found"
+ *       400:
+ *         description: Bad Request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Invalid post ID"
+ */
+// Get like status for a post
+app.get('/api/posts/:id/like-status', async (req, res) => {
+  try {
+    const postId = parseInt(req.params.id);
+    const userId = req.query.userId ? parseInt(req.query.userId) : null;
+    
+    if (!postId || isNaN(postId)) {
+      return res.status(400).json({ error: 'Valid postId is required' });
+    }
+    
+    // Check if post exists
+    const post = await prisma.post.findUnique({
+      where: { id: postId }
+    });
+    
+    if (!post) {
+      return res.status(404).json({ error: 'Post not found' });
+    }
+    
+    // Get like count
+    const likeCount = await prisma.like.count({
+      where: { postId: postId }
+    });
+    
+    let liked = false;
+    if (userId) {
+      const existingLike = await prisma.like.findUnique({
+        where: {
+          userId_postId: {
+            userId: userId,
+            postId: postId
+          }
+        }
+      });
+      liked = !!existingLike;
+    }
+    
+    res.json({
+      liked: liked,
+      likeCount: likeCount
+    });
+  } catch (error) {
+    console.error('Get like status error:', error);
+    res.status(500).json({
+      error: 'Something went wrong',
+      details: error.message
+    });
+  }
+});
+
+
 // 404 handler for undefined routes
 app.use(notFoundHandler);
 
