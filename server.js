@@ -1383,6 +1383,199 @@ app.get('/api/posts/:id/save-status', async (req, res) => {
 });
 
 
+/**
+ * @swagger
+ * /api/posts/share:
+ *   post:
+ *     summary: Share a post
+ *     tags: [Posts]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content: 
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: 
+ *               - postId
+ *               - userId
+ *             properties:
+ *               postId:
+ *                 type: integer
+ *                 description: ID of the post to share
+ *                 example: 1
+ *               userId:
+ *                 type: integer
+ *                 description: ID of the user performing the action
+ *                 example: 1
+ *     responses:
+ *       200:
+ *         description: Shared successfully
+ *         content: 
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 shared:
+ *                   type: boolean
+ *                   example: true
+ *                 shareCount:
+ *                   type: integer
+ *                   example: 5
+ *                 message: 
+ *                   type: string
+ *                   example: "Post shared"
+ *       400:
+ *         description: Bad Request
+ *         content: 
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Post id and user id are required"
+ *       404:
+ *         description: Post not found
+ *         content: 
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Post not found"
+ */// Share a post
+app.post('/api/posts/share', async (req, res) => {
+  try {
+    const postId = parseInt(req.body.postId);
+    const userId = parseInt(req.body.userId);
+    if(!postId || !userId){
+      return res.status(400).json({ error: 'Post id and user id are required' });
+    }
+
+    const post = await prisma.post.findUnique({ where: { id: postId } });
+    if(!post){
+      return res.status(404).json({ error: 'Post not found' })
+    }
+
+    let shared = false;
+    if(userId){
+      const existingShare = await prisma.share.findUnique({
+        where: {
+          userId_postId: {
+	    userId: userId,
+	    postId: postId
+	  }
+        }
+      });
+      if(existShare){ shared = true }
+    }
+
+    if(!existingShare){
+       await prisma.share.create({ data: { postId: postId, userId: userId } });
+       shared = true
+    }
+
+    const shareCount = await prisma.share.count({ where: { postId: postId } });
+
+    res.json({ success: true, shared: shared, shareCount: shareCount, message: 'Post shared' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to load data', details: error.message });
+  }
+})
+
+
+/**
+ * @swagger
+ * /api/posts/{id}/share-status:
+ *   get:
+ *     summary: Get share status for a post
+ *     tags: [Posts]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Post ID
+ *     responses:
+ *       200:
+ *         description: Share status retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 saved:
+ *                   type: boolean
+ *                   example: true
+ *                 saveCount:
+ *                   type: integer
+ *                   example: 5
+ *       404:
+ *         description: Post not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Post not found"
+ *       400:
+ *         description: Bad Request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Invalid post ID"
+ */
+// Get share status for a post
+app.get('/api/posts/:id/share-status', async (req, res) => {
+  try {
+    const postId = parseInt(req.params.id)
+    const userId = req.query.userId ? parseInt(req.query.userId) : null
+    if(!postId || isNaN(postId)){
+      return res.status(400).json({ error: 'Post id is required' });
+    } 
+
+    const post = await prisma.post.findUnique({ where: { id: postId } });
+    if(!post){
+      return res.status(404).json({ error: 'Post not found' });
+    }
+
+    let shared = false;
+    if(userId){
+      const existShare = await prisma.share.findUnique({ 
+        where: {
+          userId_postId: {
+	    postId: postId,
+	    userId: userId,
+	  }
+        }
+      });
+      if(existShare){
+	shared = true
+      }
+    }
+
+    const shareCount = await prisma.share.count({ where: { postId: postId } });
+
+    res.json({ success: true, shared: shared, shareCount: shareCount });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to load data', details: error.message });
+  }
+})
+
+
 // 404 handler for undefined routes
 app.use(notFoundHandler);
 

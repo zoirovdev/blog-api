@@ -21,6 +21,7 @@ model User {
   posts     Post[]
   likes     Like[]   
   saved     Save[]
+  shared    Share[]
   
   @@map("users")
 }
@@ -37,6 +38,7 @@ model Post {
   author      User      @relation(fields: [authorId], references: [id])
   likes       Like[]    
   saved       Save[]
+  shared      Share[]
   
   @@map("posts")
 }
@@ -69,5 +71,20 @@ model Save {
 
   @@unique([userId, postId])
   @@map("saved")
+}
+
+
+model Share {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+
+  userId    Int 
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  postId    Int
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@map("shared")
 }
 
