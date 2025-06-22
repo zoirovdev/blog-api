@@ -1172,6 +1172,217 @@ app.get('/api/posts/:id/like-status', async (req, res) => {
 });
 
 
+/**
+ * @swagger
+ * /api/posts/save:
+ *   post:
+ *     summary: Toggle save/unsave a post
+ *     tags: [Posts]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - postId
+ *               - userId
+ *             properties:
+ *               postId:
+ *                 type: integer
+ *                 description: ID of the post to save/unsave
+ *                 example: 1
+ *               userId:
+ *                 type: integer
+ *                 description: ID of the user performing the action
+ *                 example: 1
+ *     responses:
+ *       200:
+ *         description: Save toggled successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 saved:
+ *                   type: boolean
+ *                   example: true
+ *                 saveCount:
+ *                   type: integer
+ *                   example: 5
+ *                 message:
+ *                   type: string
+ *                   example: "Post saved"
+ *       404:
+ *         description: Post not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Post not found"
+ *       400:
+ *         description: Bad Request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Something went wrong"
+ *                 details:
+ *                   type: string
+ *                   example: "Error details"
+ */
+// Save/Unsave a post
+app.post('/api/posts/save', async (req, res) => {
+  try {
+    const postId = parseInt(req.body.postId);
+    const userId = parseInt(req.body.userId);
+
+    if(!postId || !userId){
+      return res.status(400).json({ error: 'Post id and user id are required!' });
+    }
+
+    const post = await prisma.post.findUnique({
+      where: { id: postId }
+    })
+    if(!post){
+      return res.status(404).json({ error: 'Post not found!' });
+    }
+
+    const existingSave = await prisma.save.findUnique({
+      where: { 
+        userId_postId: {
+	  userId: userId,
+	  postId: postId
+	}
+      }
+    });
+
+    let saved;
+    if(existingSave){
+      await prisma.save.delete({ where: { id: existingSave.id } });
+      saved = false;
+    } else {
+      await prisma.save.create({ data: { postId: postId, userId: userId } });
+      saved = true;
+    } 
+
+    // Get save count
+    const saveCount = await prisma.save.count({ where: { postId: postId } });
+
+    res.status(200).json({
+      success: true,
+      saved: saved,
+      saveCount: saveCount,
+      message: saved ? 'Post saved' : 'Post unsaved'
+    });
+  } catch (error) {
+    res.status(400).json({
+      error: 'Something went wrong!',
+      message: error.message
+    })
+  }
+})
+
+
+/**
+ * @swagger
+ * /api/posts/{id}/save-status:
+ *   get:
+ *     summary: Get save status for a post
+ *     tags: [Posts]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Post ID
+ *     responses:
+ *       200:
+ *         description: Save status retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 saved:
+ *                   type: boolean
+ *                   example: true
+ *                 saveCount:
+ *                   type: integer
+ *                   example: 5
+ *       404:
+ *         description: Post not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Post not found"
+ *       400:
+ *         description: Bad Request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Invalid post ID"
+ */
+// Get save status for a post
+app.get('/api/posts/:id/save-status', async (req, res) => {
+  try {
+    const postId = parseInt(req.params.id);
+    const userId = req.query.userId ? parseInt(req.query.userId) : null;
+
+    if(!postId || isNaN(postId)){ 
+      return res.status(400).json({ error: 'Post id is required' });
+    } 
+
+    const post = await prisma.post.findUnique({ where: { id: postId } });
+
+    // Check if post exists
+    if(!post){ 
+      return res.status(404).json({ error: 'Post not found' });
+    }
+
+    // get save count
+    const saveCount = await prisma.save.count({ where: { postId: postId } });
+
+    let saved = false
+    if(userId){
+      const existingSave = await prisma.save.findUnique({
+	where: {
+	  userId_postId: {
+	    userId: userId,
+	    postId: postId
+	  }
+	}
+      });
+      saved = !!existingSave;
+    }
+
+    res.json({ saved: saved, saveCount: saveCount }); 
+  } catch (error) {
+    res.status(400).json({ error: 'Something went wrong', message: error.message });	
+  }
+});
+
+
 // 404 handler for undefined routes
 app.use(notFoundHandler);
 

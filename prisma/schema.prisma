@@ -19,7 +19,8 @@ model User {
   updatedAt DateTime @updatedAt
   
   posts     Post[]
-  likes     Like[]   // Add this line
+  likes     Like[]   
+  saved     Save[]
   
   @@map("users")
 }
@@ -34,12 +35,13 @@ model Post {
   
   authorId    Int
   author      User      @relation(fields: [authorId], references: [id])
-  likes       Like[]    // Add this line
+  likes       Like[]    
+  saved       Save[]
   
   @@map("posts")
 }
 
-// Add this new model
+
 model Like {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
@@ -53,3 +55,19 @@ model Like {
   @@unique([userId, postId])
   @@map("likes")
 }
+
+
+model Save {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+
+  userId    Int 
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  postId    Int
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@map("saved")
+}
+
