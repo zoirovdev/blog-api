@@ -1473,14 +1473,15 @@ app.post('/api/posts/share', async (req, res) => {
 	  }
         }
       });
-      if(existShare){ shared = true }
-    }
-
-    if(!existingShare){
+      if(existingShare){ 
+	shared = true 
+      } else {
        await prisma.share.create({ data: { postId: postId, userId: userId } });
-       shared = true
+        shared = true
+      }
     }
 
+    
     const shareCount = await prisma.share.count({ where: { postId: postId } });
 
     res.json({ success: true, shared: shared, shareCount: shareCount, message: 'Post shared' });
