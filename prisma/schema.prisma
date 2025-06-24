@@ -22,6 +22,7 @@ model User {
   likes     Like[]   
   saved     Save[]
   shared    Share[]
+  comments  Comment[]
   
   @@map("users")
 }
@@ -39,6 +40,7 @@ model Post {
   likes       Like[]    
   saved       Save[]
   shared      Share[]
+  comments    Comment[]
   
   @@map("posts")
 }
@@ -88,3 +90,18 @@ model Share {
   @@map("shared")
 }
 
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+
+  content   String
+
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  postId    Int
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@map("comments")
+}

@@ -1577,6 +1577,84 @@ app.get('/api/posts/:id/share-status', async (req, res) => {
 })
 
 
+// write a comment
+app.post('/api/posts/comment', async (req, res) => {
+  try {
+    const postId = parseInt(req.body.postId)
+    if(!postId || isNaN(postId)){
+      return res.status(400).json({ error: 'Post id is required' });
+    }
+
+    const userId = parseInt(req.body.userId)
+    if(!userId || isNaN(userId)){
+      return res.status(400).json({ error: 'User id is required' });
+    }
+
+    const post = await prisma.post.findUnique({ where: { id: postId } });
+    if(!post){
+      return res.status(404).json({ error: 'Post not found' });
+    }
+
+    const comment = await prisma.comment.create({
+      data: { 
+        content: req.body.content,
+	userId: userId,
+	postId: postId
+      },
+      include: {
+	user: {
+	  select: {
+	    id: true,
+	    username: true,
+	    firstName: true,
+	    lastName: true
+	  }
+	}
+      }
+    });
+
+    res.status(201).json(comment);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error', details: error.message })	
+  }
+})
+
+
+// get comments by post id
+app.get('/api/posts/:id/comments', async (req, res) => {
+  try {
+    const postId = parseInt(req.params.id)
+    if(!postId || isNaN(postId)){
+      return res.status(400).json({ error: 'Post id is required' });
+    }
+
+    const userId = parseInt(req.query.userId)
+    if(!userId || isNaN(userId)){
+      return res.status(400).json({ error: 'User id is required' });
+    }
+
+    const comments = await prisma.comment.findMany({ 
+      where: { postId: postId },
+      include: { user: true } 
+    });
+
+    const commentCount = await prisma.comment.count({ where: { postId: postId } })
+
+    res.status(200).json({ 
+      success: true, 
+      comments: comments, 
+      commentCount: commentCount, 
+      message: 'Succesfully loaded'
+    })
+  } catch (error) {
+    res.status(500).json({ error: 'Server error', details: error.message });
+  }
+});
+
+
+
+
+
 // 404 handler for undefined routes
 app.use(notFoundHandler);
 
