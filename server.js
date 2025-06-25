@@ -1652,7 +1652,68 @@ app.get('/api/posts/:id/comments', async (req, res) => {
 });
 
 
+// create a read model that clarify post is read or not
+app.post('/api/posts/read', async (req, res) => {
+  try {
+    const postId = parseInt(req.body.postId)
+    if(!postId){
+      res.status(400).json({ error: 'Post id is required' });
+      return
+    }
 
+    const userId = parseInt(req.body.userId)
+    if(!userId){
+      res.status(400).json({ error: 'User id is required' });
+      return
+    }
+
+    const post = await prisma.post.findUnique({ where: { id: postId } })
+    if(!post){
+      res.status(404).json({ error: 'Post not found' });
+      return
+    }
+
+    const existRead = await prisma.read.findFirst({ where: { postId: postId, userId: userId } })
+    if(!existRead){
+      await prisma.read.create({ 
+        data: {
+          postId: postId,
+	  userId: userId
+        }      
+      })
+    }
+    
+    const readCount = await prisma.read.count({ where: { postId: postId } })
+
+    res.status(200).json({ readCount: readCount, success: true })
+  } catch (error) {
+    res.status(500).json({ error: 'Server error', details: error.message })
+  }
+})
+
+
+// get how many users read post
+app.get('/api/posts/:id/read', async (req, res) => {
+  try {
+    const postId = parseInt(req.params.id)
+    if(!postId){
+      res.status(400).json({ error: 'Post id is not valid' });
+      return
+    }
+
+    const post = await prisma.post.findFirst({ where: { id: postId } });
+    if(!post){
+      res.status(404).json({ error: 'Post not found' });
+      return
+    }
+
+    const readCount = await prisma.read.count({ where: { postId: postId } });
+    
+    res.status(200).json({ readCount: readCount, success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error', details: error.message })
+  }
+})
 
 
 // 404 handler for undefined routes

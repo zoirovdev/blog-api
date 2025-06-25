@@ -119,5 +119,6 @@ model Read {
   postId   Int      
   post     Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, postId])
   @@map("reads")
 }
