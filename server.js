@@ -1716,6 +1716,37 @@ app.get('/api/posts/:id/read', async (req, res) => {
 })
 
 
+// update user
+app.put('/api/users/:id', async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id)
+    const firstName = req.body.firstName
+    const lastName = req.body.lastName
+    if(!userId || !firstName || !lastName){  
+      return res.status(400).json({ error: 'User id is required' });
+    }
+
+    const user = await prisma.user.update({ 
+      where: { id: userId },
+      data: {
+	firstName,
+	lastName
+      }
+    })
+    
+    res.status(200).json(user)
+  } catch (error) {
+    if(error.code === 'P2025'){
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.status(500).json({ error: 'Server error', details: error.message })
+  }
+})
+
+
+
+
 // 404 handler for undefined routes
 app.use(notFoundHandler);
 
