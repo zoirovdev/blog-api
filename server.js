@@ -1745,6 +1745,28 @@ app.put('/api/users/:id', async (req, res) => {
 })
 
 
+// get user liked posts
+app.get('/api/posts/:userId', async (req, res) => {
+  try {
+    const userId = parseInt(req.params.userId)
+    if(!userId){
+      return res.status(400).json({ error: 'User id is required' });
+    }
+
+    const likes = await prisma.like.findMany({ where: { userId: userId } });
+    const posts = []
+    if(likes){
+      for(let like of likes){
+        const post = await prisma.post.findUnique({ where: { id: like.postId } });
+	posts.push(post)
+      }
+    }
+
+    res.status(200).json(posts)
+  } catch (error) {
+    res.status(500).json({ error: 'Server error', details: error.message });
+  }
+})
 
 
 // 404 handler for undefined routes
