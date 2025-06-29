@@ -1673,16 +1673,24 @@ app.post('/api/posts/read', async (req, res) => {
       return
     }
 
-    const existRead = await prisma.read.findFirst({ where: { postId: postId, userId: userId } })
-    if(!existRead){
-      await prisma.read.create({ 
-        data: {
-          postId: postId,
-	  userId: userId
-        }      
-      })
-    }
-    
+    // Use upsert to handle the unique constraint safely
+    await prisma.read.upsert({
+      where: {
+        userId_postId: {  // Compound unique key
+          userId: userId,
+          postId: postId
+        }
+      },
+      update: {
+        // Optionally update timestamp
+        createdAt: new Date()
+      },
+      create: {
+        userId: userId,
+        postId: postId
+      }
+    })
+
     const readCount = await prisma.read.count({ where: { postId: postId } })
 
     res.status(200).json({ readCount: readCount, success: true })
@@ -1746,21 +1754,60 @@ app.put('/api/users/:id', async (req, res) => {
 
 
 // get user liked posts
-app.get('/api/posts/:userId', async (req, res) => {
+app.get('/api/user/:userId/liked-posts', async (req, res) => {
   try {
     const userId = parseInt(req.params.userId)
     if(!userId){
       return res.status(400).json({ error: 'User id is required' });
     }
 
-    const likes = await prisma.like.findMany({ where: { userId: userId } });
-    const posts = []
-    if(likes){
-      for(let like of likes){
-        const post = await prisma.post.findUnique({ where: { id: like.postId } });
-	posts.push(post)
+    const likes = await prisma.like.findMany({
+      where: { userId: userId },
+      select: {
+        post: {
+          select: {
+            id: true,
+	    createdAt: true,
+	    author: true,
+            title: true,
+            content: true
+          }
+        }
       }
+    })
+    const posts = likes.map(like => like.post)
+
+    res.status(200).json([posts])
+  } catch (error) {
+    res.status(500).json({ error: 'Server error', details: error.message });
+  }
+})
+
+
+// get user saved posts
+app.get('/api/user/:userId/saved-posts', async (req, res) => {
+  try {
+    const userId = parseInt(req.params.userId)
+    if(!userId){
+      return res.status(400).json({ error: 'User id is required' });
     }
+
+    const saved = await prisma.save.findMany({
+      where: { userId: userId },
+      select: {
+        post: {
+	  select: {
+            id: true,
+	    author: true,
+	    createdAt: true,
+	    title: true,
+	    content: true
+	  }
+	}
+      }
+    })
+
+    const posts = saved.map(save => save.post)
 
     res.status(200).json(posts)
   } catch (error) {

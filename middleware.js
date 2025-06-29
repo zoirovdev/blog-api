@@ -4,7 +4,7 @@ const rateLimit = require('express-rate-limit');
 // General API rate limit
 const generalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Limit each IP to 100 requests per windowMs
+    max: 10000, // Limit each IP to 100 requests per windowMs
     message: {
         error: 'Too many requests from this IP, please try again later.',
         retryAfter: '15 minutes'
@@ -16,7 +16,7 @@ const generalLimiter = rateLimit({
 // Strict rate limit for auth endpoints
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // Limit each IP to 5 auth requests per windowMs
+    max: 500, // Limit each IP to 5 auth requests per windowMs
     message: {
         error: 'Too many authentication attempts, please try again later.',
         retryAfter: '15 minutes'
@@ -28,7 +28,7 @@ const authLimiter = rateLimit({
 // Moderate rate limit for post creation
 const createPostLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 10, // Limit each IP to 10 post creations per windowMs
+    max: 1000, // Limit each IP to 10 post creations per windowMs
     message: {
         error: 'Too many posts created, please try again later.',
         retryAfter: '15 minutes'
