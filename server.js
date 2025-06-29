@@ -1848,6 +1848,42 @@ app.get('/api/user/:userId/shared-posts', async (req, res) => {
 })
 
 
+// get user commented posts
+app.get('/api/user/:userId/commented-posts', async (req, res) => {
+  try {
+    const userId = parseInt(req.params.userId)
+    if(!userId){
+      return res.status(400).json({ error: 'User id required' })
+    }
+
+    const commented = await prisma.comment.findMany({
+      where: { userId: userId },
+      select: {
+        post: {
+          select: {
+            id: true,
+	    author: true,
+	    createdAt: true,
+	    title: true,
+	    content: true
+	  }
+	}
+      }
+    })
+
+    const uniquePosts = commented
+      .map(com => com.post)
+      .filter((post, index, array) => 
+        array.findIndex(p => p.id === post.id) === index
+      )
+
+    res.status(200).json(uniquePosts)
+  } catch (error) {
+    res.status(500).json({ error: 'Server error', details: error.message });
+  }
+})
+
+
 // 404 handler for undefined routes
 app.use(notFoundHandler);
 
