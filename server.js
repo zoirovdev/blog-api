@@ -1816,6 +1816,38 @@ app.get('/api/user/:userId/saved-posts', async (req, res) => {
 })
 
 
+// get user shared posts
+app.get('/api/user/:userId/shared-posts', async (req, res) => {
+  try {
+    const userId = parseInt(req.params.userId)
+    if(!userId){
+      return res.status(400).json({ error: 'User id is required' }) 
+    }
+
+    const shared = await prisma.share.findMany({
+      where: { userId: userId },
+      select: {
+        post: {
+          select: {
+            id: true,
+	    author: true,
+	    createdAt: true,
+	    title: true,
+	    content: true
+	  }
+	}
+      }
+    })
+
+    const posts = shared.map(share => share.post)
+    
+    res.status(200).json(posts)
+  } catch (error){
+    res.status(500).json({ error: 'Server error', details: error.message });
+  }
+})
+
+
 // 404 handler for undefined routes
 app.use(notFoundHandler);
 
