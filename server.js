@@ -541,6 +541,42 @@ app.get('/api/user/posts', async (req, res) => {
     }
 });
 
+
+// get account posts
+app.get('/api/accounts/:username/posts', async (req, res) => {
+  try {
+    const username = req.params.username
+    if(!username){
+      return res.status(400).json({ error: 'Username required' })
+    }
+
+    const user = await prisma.user.findUnique({ where: { username: username } })
+    if(!user){
+      return res.status(404).json({ error: 'User not found' })
+    }
+
+    const posts = await prisma.post.findMany({
+      where: { authorId: user.id },
+      include: {
+        author: {
+	  select: {
+            id: true,
+	    firstName: true,
+	    lastName: true,
+	    username: true,
+	    createdAt: true
+	  }
+	}
+      }
+    })
+
+    res.status(200).json(posts)
+  } catch (error) {
+    res.status(500).json({ error: "Server error", details: error.message })
+  }
+})
+
+
 /**
  * @swagger
  * /api/posts/{id}:
@@ -943,6 +979,37 @@ app.get('/api/auth/profile', authenticateToken, async (req, res) => {
         });
     }
 });
+
+
+// get user by username
+app.get('/api/users/:username', async (req, res) => {
+  try {
+    const username = req.params.username
+    if(!username){
+      return res.status(400).json({ error: 'Username required' })
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { username: username },
+      select: {
+        id: true,
+	username: true,
+	firstName: true,
+	lastName: true,
+	createdAt: true,
+	email: true
+      }
+    })
+
+    if(!user){
+      return res.status(404).json({ error: 'User not found' })
+    }
+
+    res.status(200).json(user)
+  } catch (error) {
+    res.status(500).json({ error: 'Server error', details: error.message })
+  }
+})
 
 
 /**
@@ -1914,6 +1981,9 @@ app.get('/api/user/:userId/read-posts', async (req, res) => {
     res.status(500).json({ error: 'Server error', details: error.message })
   }
 })
+
+
+
 
 
 // 404 handler for undefined routes
