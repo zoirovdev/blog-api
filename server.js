@@ -15,7 +15,9 @@ const PORT = process.env.PORT || 8000;
 
 // Add CORS middleware BEFORE your routes
 app.use(cors({
-  origin: 'http://localhost:5173' // Your React app's URL
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://yourdomain.com', 'https://yoour-railway-app.railway.app']
+    : 'http://localhost:5173' 
 }))
 
 // Middleware to parse JSON bodies
