@@ -13,12 +13,21 @@ const { specs, swaggerUi } = require('./swagger');
 const app = express();
 const PORT = process.env.PORT || 8000;
 
-// Add CORS middleware BEFORE your routes
-app.use(cors({
+
+// CORS configuration
+const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://yourdomain.com', 'https://yoour-railway-app.railway.app']
-    : 'http://localhost:5173' 
-}))
+    ? (process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : ['https://yourdomain.com'])
+    : process.env.CORS_ORIGIN || 'http://localhost:5173',
+  methods: process.env.CORS_METHODS ? process.env.CORS_METHODS.split(',') : ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: process.env.CORS_ALLOWED_HEADERS ? process.env.CORS_ALLOWED_HEADERS.split(',') : ['Content-Type', 'Authorization'],
+  credentials: true
+};
+
+
+// Apply CORS middleware
+app.use(cors(corsOptions));
+
 
 // Middleware to parse JSON bodies
 app.use(express.json());

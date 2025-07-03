@@ -1,4 +1,4 @@
-// swagger.js
+// swagger.js - Updated to use environment variables
 const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 
@@ -6,9 +6,9 @@ const options = {
     definition: {
         openapi: '3.0.0',
         info: {
-            title: 'Blog API',
-            version: '1.0.0',
-            description: 'A comprehensive blog API with authentication, CRUD operations, search, and pagination',
+            title: process.env.API_TITLE || 'Blog API',
+            version: process.env.API_VERSION || '1.0.0',
+            description: process.env.API_DESCRIPTION || 'A comprehensive blog API with authentication, CRUD operations, search, and pagination',
             contact: {
                 name: 'API Support',
                 email: 'support@blogapi.com'
@@ -16,8 +16,10 @@ const options = {
         },
         servers: [
             {
-                url: 'http://localhost:8000',
-                description: 'Development server'
+                url: process.env.NODE_ENV === 'production' 
+                    ? process.env.PRODUCTION_URL || 'https://your-production-url.com'
+                    : `http://localhost:${process.env.PORT || 8000}`,
+                description: process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server'
             }
         ],
         components: {
@@ -64,7 +66,7 @@ const options = {
             }
         }
     },
-    apis: ['./server.js'], // Path to the API files
+    apis: ['./server.js'],
 };
 
 const specs = swaggerJsdoc(options);
