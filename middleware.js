@@ -1,5 +1,4 @@
 const rateLimit = require('express-rate-limit');
-
 // General API rate limit
 const generalLimiter = rateLimit({
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
@@ -11,7 +10,6 @@ const generalLimiter = rateLimit({
     standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
     legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 });
-
 // Strict rate limit for auth endpoints
 const authLimiter = rateLimit({
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
@@ -23,7 +21,6 @@ const authLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
 });
-
 // Moderate rate limit for post creation
 const createPostLimiter = rateLimit({
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
@@ -35,7 +32,6 @@ const createPostLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
 });
-
 // Global error handler
 const errorHandler = (err, req, res, next) => {
     console.error('Global error handler:', err);
@@ -72,14 +68,12 @@ const errorHandler = (err, req, res, next) => {
         message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
     });
 };
-
 // Request logging middleware
 const requestLogger = (req, res, next) => {
     const timestamp = new Date().toISOString();
     console.log(`${timestamp} - ${req.method} ${req.path} - IP: ${req.ip}`);
     next();
 };
-
 // 404 handler
 const notFoundHandler = (req, res) => {
     res.status(404).json({ 
@@ -99,7 +93,6 @@ const notFoundHandler = (req, res) => {
         ]
     });
 };
-
 module.exports = {
     generalLimiter,
     authLimiter,

@@ -1,4 +1,3 @@
-// prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,115 +8,97 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  username  String   @unique
+  id        Int       @id @default(autoincrement())
+  email     String    @unique
+  username  String    @unique
   password  String
   firstName String?
   lastName  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  comments  Comment[]
+  likes     Like[]
   posts     Post[]
-  likes     Like[]   
+  reads     Read[]
   saved     Save[]
   shared    Share[]
-  comments  Comment[]
-  reads     Read[]
-  
+
   @@map("users")
 }
 
 model Post {
-  id          Int       @id @default(autoincrement())
-  title       String
-  content     String
-  published   Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
-  authorId    Int
-  author      User      @relation(fields: [authorId], references: [id])
-  likes       Like[]    
-  saved       Save[]
-  shared      Share[]
-  comments    Comment[]
-  reads       Read[]
-  
+  id        Int       @id @default(autoincrement())
+  title     String
+  content   String
+  published Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  authorId  Int
+  comments  Comment[]
+  likes     Like[]
+  author    User      @relation(fields: [authorId], references: [id])
+  reads     Read[]
+  saved     Save[]
+  shared    Share[]
+
   @@map("posts")
 }
-
 
 model Like {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
-  
   userId    Int
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
   postId    Int
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([userId, postId])
   @@map("likes")
 }
 
-
 model Save {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
-
-  userId    Int 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+  userId    Int
   postId    Int
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, postId])
   @@map("saved")
 }
 
-
 model Share {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
-
-  userId    Int 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+  userId    Int
   postId    Int
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, postId])
   @@map("shared")
 }
 
-
 model Comment {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
-
   content   String
-
   userId    Int
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
   postId    Int
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("comments")
 }
 
-
 model Read {
-  id       Int       @id @default(autoincrement())
+  id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
-
-  userId   Int 
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  postId   Int      
-  post     Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    Int
+  postId    Int
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, postId])
   @@map("reads")

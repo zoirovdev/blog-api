@@ -4,7 +4,14 @@ require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
-const prisma = require('./db.js');
+
+const { PrismaClient } = require('@prisma/client');
+
+const prisma = new PrismaClient({
+  log: ['query', 'info', 'warn', 'error'],
+});
+
+
 const { hashPassword, comparePassword, generateToken, authenticateToken } = require('./auth.js');
 const { registerSchema, loginSchema, createPostSchema, updatePostSchema, validate } = require('./validation.js');
 const { generalLimiter, authLimiter, createPostLimiter, errorHandler, requestLogger, notFoundHandler } = require('./middleware.js');
@@ -12,6 +19,7 @@ const { specs, swaggerUi } = require('./swagger');
 
 const app = express();
 const PORT = process.env.PORT || 8000;
+
 
 
 // CORS configuration
@@ -254,7 +262,7 @@ app.get('/api/posts', async (req, res) => {
  *         description: Search query is required
  */
 // Advanced search endpoint
-app.get('/api/posts/search', async (req, res) => {
+app.get('/api/posts/search', authenticateToken, async (req, res) => {
     try {
         const { q, author, published, sortBy = 'createdAt', order = 'desc' } = req.query;
         
@@ -554,7 +562,7 @@ app.get('/api/user/posts', async (req, res) => {
 
 
 // get account posts
-app.get('/api/accounts/:username/posts', async (req, res) => {
+app.get('/api/accounts/:username/posts', authenticateToken, async (req, res) => {
   try {
     const username = req.params.username
     if(!username){
@@ -993,7 +1001,7 @@ app.get('/api/auth/profile', authenticateToken, async (req, res) => {
 
 
 // get user by username
-app.get('/api/users/:username', async (req, res) => {
+app.get('/api/users/:username', authenticateToken, async (req, res) => {
   try {
     const username = req.params.username
     if(!username){
@@ -1803,7 +1811,7 @@ app.get('/api/posts/:id/read', async (req, res) => {
 
 
 // update user
-app.put('/api/users/:id', async (req, res) => {
+app.put('/api/users/:id', authenticateToken, async (req, res) => {
   try {
     const userId = parseInt(req.params.id)
     const firstName = req.body.firstName
@@ -1832,7 +1840,7 @@ app.put('/api/users/:id', async (req, res) => {
 
 
 // get user liked posts
-app.get('/api/user/:userId/liked-posts', async (req, res) => {
+app.get('/api/user/:userId/liked-posts', authenticateToken, async (req, res) => {
   try {
     const userId = parseInt(req.params.userId)
     if(!userId){
@@ -1863,7 +1871,7 @@ app.get('/api/user/:userId/liked-posts', async (req, res) => {
 
 
 // get user saved posts
-app.get('/api/user/:userId/saved-posts', async (req, res) => {
+app.get('/api/user/:userId/saved-posts', authenticateToken, async (req, res) => {
   try {
     const userId = parseInt(req.params.userId)
     if(!userId){
@@ -1895,7 +1903,7 @@ app.get('/api/user/:userId/saved-posts', async (req, res) => {
 
 
 // get user shared posts
-app.get('/api/user/:userId/shared-posts', async (req, res) => {
+app.get('/api/user/:userId/shared-posts', authenticateToken, async (req, res) => {
   try {
     const userId = parseInt(req.params.userId)
     if(!userId){
@@ -1927,7 +1935,7 @@ app.get('/api/user/:userId/shared-posts', async (req, res) => {
 
 
 // get user commented posts
-app.get('/api/user/:userId/commented-posts', async (req, res) => {
+app.get('/api/user/:userId/commented-posts', authenticateToken, async (req, res) => {
   try {
     const userId = parseInt(req.params.userId)
     if(!userId){
@@ -1963,7 +1971,7 @@ app.get('/api/user/:userId/commented-posts', async (req, res) => {
 
 
 // get user read posts
-app.get('/api/user/:userId/read-posts', async (req, res) => {
+app.get('/api/user/:userId/read-posts', authenticateToken, async (req, res) => {
   try {
     const userId = parseInt(req.params.userId)
     if(!userId){

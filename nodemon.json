@@ -1,0 +1,15 @@
+{
+  "ignore": [
+    "node_modules",
+    "*.log",
+    "dist",
+    ".git",
+    "prisma/migrations",
+    ".env"
+  ],
+  "delay": 2000,
+  "watch": [
+    "*.js",
+    "!node_modules"
+  ]
+}
