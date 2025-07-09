@@ -2,7 +2,7 @@ const rateLimit = require('express-rate-limit');
 // General API rate limit
 const generalLimiter = rateLimit({
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
-    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100, // Limit each IP to 100 requests per windowMs
+    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 1000, // Limit each IP to 100 requests per windowMs
     message: {
         error: 'Too many requests from this IP, please try again later.',
         retryAfter: '15 minutes'
@@ -13,7 +13,7 @@ const generalLimiter = rateLimit({
 // Strict rate limit for auth endpoints
 const authLimiter = rateLimit({
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
-    max: parseInt(process.env.AUTH_RATE_LIMIT_MAX) || 5, // Limit each IP to 5 auth requests per windowMs
+    max: parseInt(process.env.AUTH_RATE_LIMIT_MAX) || 100, // Limit each IP to 5 auth requests per windowMs
     message: {
         error: 'Too many authentication attempts, please try again later.',
         retryAfter: '15 minutes'
@@ -24,7 +24,7 @@ const authLimiter = rateLimit({
 // Moderate rate limit for post creation
 const createPostLimiter = rateLimit({
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
-    max: parseInt(process.env.POST_RATE_LIMIT_MAX) || 10, // Limit each IP to 10 post creations per windowMs
+    max: parseInt(process.env.POST_RATE_LIMIT_MAX) || 100, // Limit each IP to 10 post creations per windowMs
     message: {
         error: 'Too many posts created, please try again later.',
         retryAfter: '15 minutes'
