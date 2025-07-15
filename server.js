@@ -18,19 +18,9 @@ const { generalLimiter, authLimiter, createPostLimiter, errorHandler, requestLog
 const { specs, swaggerUi } = require('./swagger');
 
 const app = express();
+const userRoutes = require('./routes/userRoutes.js')
+const postRoutes = require('./routes/postRoutes.js')
 const PORT = process.env.PORT || 8000;
-
-
-
-// CORS configuration
-const corsOptions = {
-  origin: process.env.NODE_ENV === 'production' 
-    ? (process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : ['https://yourdomain.com'])
-    : process.env.CORS_ORIGIN || 'http://localhost:5173',
-  methods: process.env.CORS_METHODS ? process.env.CORS_METHODS.split(',') : ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: process.env.CORS_ALLOWED_HEADERS ? process.env.CORS_ALLOWED_HEADERS.split(',') : ['Content-Type', 'Authorization'],
-  credentials: true
-};
 
 
 // Apply CORS middleware
@@ -39,6 +29,9 @@ app.use(cors());
 
 // Middleware to parse JSON bodies
 app.use(express.json());
+
+app.use('/api/users', userRoutes)
+app.use('/api/posts', postRoutes)
 
 app.use(requestLogger); // Log all requests
 app.use(generalLimiter); // Apply general rate limiting to all routes
@@ -129,7 +122,7 @@ app.get('/', (req, res) => {
  *                   type: object
  */
 // Get all posts with pagination
-app.get('/api/posts', async (req, res) => {
+/*app.get('/api/posts', async (req, res) => {
     try {
         // Extract query parameters with defaults
         const page = parseInt(req.query.page) || 1;
@@ -203,7 +196,7 @@ app.get('/api/posts', async (req, res) => {
             details: error.message
         });
     }
-});
+}); */
 
 /**
  * @swagger
@@ -262,7 +255,7 @@ app.get('/api/posts', async (req, res) => {
  *         description: Search query is required
  */
 // Advanced search endpoint
-app.get('/api/posts/search', authenticateToken, async (req, res) => {
+/*app.get('/api/posts/search', authenticateToken, async (req, res) => {
     try {
         const { q, author, published, sortBy = 'createdAt', order = 'desc' } = req.query;
         
@@ -324,7 +317,7 @@ app.get('/api/posts/search', authenticateToken, async (req, res) => {
             details: error.message
         });
     }
-});
+});*/
 
 /**
  * @swagger
@@ -352,7 +345,7 @@ app.get('/api/posts/search', authenticateToken, async (req, res) => {
  *         description: Server error
  */
 // Get a specific post by id
-app.get('/api/posts/:id', async (req, res) => {
+/*app.get('/api/posts/:id', async (req, res) => {
     try {
         const postId = parseInt(req.params.id);
         const post = await prisma.post.findUnique({
@@ -380,7 +373,7 @@ app.get('/api/posts/:id', async (req, res) => {
             details: error.message
         });
     }
-});
+}); */
 
 /**
  * @swagger
@@ -423,7 +416,7 @@ app.get('/api/posts/:id', async (req, res) => {
  *         description: Validation error
  */
 // Create a new post (PROTECTED with validation)
-app.post('/api/posts', createPostLimiter, authenticateToken, validate(createPostSchema), async (req, res) => {
+/*app.post('/api/posts', createPostLimiter, authenticateToken, validate(createPostSchema), async (req, res) => {
     try {
         const { title, content, published = false } = req.body;
         
@@ -456,7 +449,7 @@ app.post('/api/posts', createPostLimiter, authenticateToken, validate(createPost
             details: error.message
         });
     }
-});
+}); */
 
 /**
  * @swagger
@@ -484,7 +477,7 @@ app.post('/api/posts', createPostLimiter, authenticateToken, validate(createPost
  *         description: Server error
  */
 // Get all posts by a specific user
-app.get('/api/user/posts', async (req, res) => {
+/*app.get('/api/user/posts', async (req, res) => {
     try {
         // Extract query parameters with defaults
         const page = parseInt(req.query.page) || 1;
@@ -558,11 +551,11 @@ app.get('/api/user/posts', async (req, res) => {
             details: error.message
         });
     }
-});
+}); */
 
 
 // get account posts
-app.get('/api/accounts/:username/posts', authenticateToken, async (req, res) => {
+/*app.get('/api/accounts/:username/posts', authenticateToken, async (req, res) => {
   try {
     const username = req.params.username
     if(!username){
@@ -593,7 +586,7 @@ app.get('/api/accounts/:username/posts', authenticateToken, async (req, res) => 
   } catch (error) {
     res.status(500).json({ error: "Server error", details: error.message })
   }
-})
+})*/
 
 
 /**
@@ -642,7 +635,7 @@ app.get('/api/accounts/:username/posts', authenticateToken, async (req, res) => 
  *         description: Post not found
  */
 // Update a post (with authorization check)
-app.put('/api/posts/:id', authenticateToken, validate(updatePostSchema), async (req, res) => {
+/*app.put('/api/posts/:id', authenticateToken, validate(updatePostSchema), async (req, res) => {
     try {
         const postId = parseInt(req.params.id);
         const { title, content, published } = req.body;
@@ -690,7 +683,7 @@ app.put('/api/posts/:id', authenticateToken, validate(updatePostSchema), async (
             details: error.message
         });
     }
-});
+}); */
 
 /**
  * @swagger
@@ -726,7 +719,7 @@ app.put('/api/posts/:id', authenticateToken, validate(updatePostSchema), async (
  *         description: Post not found
  */
 // Delete a post (with authorization check)
-app.delete('/api/posts/:id', authenticateToken, async (req, res) => {
+/*app.delete('/api/posts/:id', authenticateToken, async (req, res) => {
     try {
         const postId = parseInt(req.params.id);
         
@@ -759,7 +752,7 @@ app.delete('/api/posts/:id', authenticateToken, async (req, res) => {
             details: error.message
         });
     }
-});
+});*/
 
 /**
  * @swagger
@@ -815,7 +808,7 @@ app.delete('/api/posts/:id', authenticateToken, async (req, res) => {
  *         description: Validation error or user already exists
  */
 // User Registration (with validation)
-app.post('/api/auth/register', authLimiter, validate(registerSchema), async (req, res) => {
+/*app.post('/api/auth/register', authLimiter, validate(registerSchema), async (req, res) => {
     try {
         const { email, username, password, firstName, lastName } = req.body;
         
@@ -867,7 +860,7 @@ app.post('/api/auth/register', authLimiter, validate(registerSchema), async (req
             details: error.message
         });
     }
-});
+}); */
 
 /**
  * @swagger
@@ -910,7 +903,7 @@ app.post('/api/auth/register', authLimiter, validate(registerSchema), async (req
  *         description: Invalid credentials
  */
 // User Login (with validation)
-app.post('/api/auth/login', authLimiter, validate(loginSchema), async (req, res) => {
+/*app.post('/api/auth/login', authLimiter, validate(loginSchema), async (req, res) => {
     try {
         const { email, password } = req.body;
         
@@ -948,7 +941,7 @@ app.post('/api/auth/login', authLimiter, validate(loginSchema), async (req, res)
             details: error.message 
         });
     }
-});
+});*/
 
 /**
  * @swagger
@@ -971,7 +964,7 @@ app.post('/api/auth/login', authLimiter, validate(loginSchema), async (req, res)
  *         description: User not found
  */
 // Get current user profile (protected route)
-app.get('/api/auth/profile', authenticateToken, async (req, res) => {
+/*app.get('/api/auth/profile', authenticateToken, async (req, res) => {
     try {
         const user = await prisma.user.findUnique({
             where: { id: req.userId },
@@ -998,10 +991,10 @@ app.get('/api/auth/profile', authenticateToken, async (req, res) => {
         });
     }
 });
-
+*/
 
 // get user by username
-app.get('/api/users/:username', authenticateToken, async (req, res) => {
+/*app.get('/api/users/:username', authenticateToken, async (req, res) => {
   try {
     const username = req.params.username
     if(!username){
@@ -1029,7 +1022,7 @@ app.get('/api/users/:username', authenticateToken, async (req, res) => {
     res.status(500).json({ error: 'Server error', details: error.message })
   }
 })
-
+*/
 
 /**
  * @swagger
@@ -1102,7 +1095,7 @@ app.get('/api/users/:username', authenticateToken, async (req, res) => {
  *                   example: "Error details"
  */
 // Like a post
-app.post('/api/posts/like', async (req, res) => {
+/*app.post('/api/posts/like', async (req, res) => {
   try {
     const postId = parseInt(req.body.postId);
     const userId = parseInt(req.body.userId); // Added parseInt for consistency
@@ -1157,7 +1150,7 @@ app.post('/api/posts/like', async (req, res) => {
       details: error.message
     });
   }
-});
+});*/
 
 /**
  * @swagger
@@ -1208,7 +1201,7 @@ app.post('/api/posts/like', async (req, res) => {
  *                   example: "Invalid post ID"
  */
 // Get like status for a post
-app.get('/api/posts/:id/like-status', async (req, res) => {
+/*app.get('/api/posts/:id/like-status', async (req, res) => {
   try {
     const postId = parseInt(req.params.id);
     const userId = req.query.userId ? parseInt(req.query.userId) : null;
@@ -1255,7 +1248,7 @@ app.get('/api/posts/:id/like-status', async (req, res) => {
       details: error.message
     });
   }
-});
+});*/
 
 
 /**
@@ -1329,7 +1322,7 @@ app.get('/api/posts/:id/like-status', async (req, res) => {
  *                   example: "Error details"
  */
 // Save/Unsave a post
-app.post('/api/posts/save', async (req, res) => {
+/*app.post('/api/posts/save', async (req, res) => {
   try {
     const postId = parseInt(req.body.postId);
     const userId = parseInt(req.body.userId);
@@ -1378,7 +1371,7 @@ app.post('/api/posts/save', async (req, res) => {
       message: error.message
     })
   }
-})
+})*/
 
 
 /**
@@ -1430,7 +1423,7 @@ app.post('/api/posts/save', async (req, res) => {
  *                   example: "Invalid post ID"
  */
 // Get save status for a post
-app.get('/api/posts/:id/save-status', async (req, res) => {
+/*app.get('/api/posts/:id/save-status', async (req, res) => {
   try {
     const postId = parseInt(req.params.id);
     const userId = req.query.userId ? parseInt(req.query.userId) : null;
@@ -1466,7 +1459,7 @@ app.get('/api/posts/:id/save-status', async (req, res) => {
   } catch (error) {
     res.status(400).json({ error: 'Something went wrong', message: error.message });	
   }
-});
+});*/
 
 
 /**
@@ -1536,7 +1529,7 @@ app.get('/api/posts/:id/save-status', async (req, res) => {
  *                   type: string
  *                   example: "Post not found"
  */// Share a post
-app.post('/api/posts/share', async (req, res) => {
+/*app.post('/api/posts/share', async (req, res) => {
   try {
     const postId = parseInt(req.body.postId);
     const userId = parseInt(req.body.userId);
@@ -1574,7 +1567,7 @@ app.post('/api/posts/share', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: 'Failed to load data', details: error.message });
   }
-})
+})*/
 
 
 /**
@@ -1626,7 +1619,7 @@ app.post('/api/posts/share', async (req, res) => {
  *                   example: "Invalid post ID"
  */
 // Get share status for a post
-app.get('/api/posts/:id/share-status', async (req, res) => {
+/*app.get('/api/posts/:id/share-status', async (req, res) => {
   try {
     const postId = parseInt(req.params.id)
     const userId = req.query.userId ? parseInt(req.query.userId) : null
@@ -1660,11 +1653,11 @@ app.get('/api/posts/:id/share-status', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: 'Failed to load data', details: error.message });
   }
-})
+})*/
 
 
 // write a comment
-app.post('/api/posts/comment', async (req, res) => {
+/*app.post('/api/posts/comment', async (req, res) => {
   try {
     const postId = parseInt(req.body.postId)
     if(!postId || isNaN(postId)){
@@ -1703,11 +1696,11 @@ app.post('/api/posts/comment', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: 'Server error', details: error.message })	
   }
-})
+})*/
 
 
 // get comments by post id
-app.get('/api/posts/:id/comments', async (req, res) => {
+/*app.get('/api/posts/:id/comments', async (req, res) => {
   try {
     const postId = parseInt(req.params.id)
     if(!postId || isNaN(postId)){
@@ -1735,11 +1728,11 @@ app.get('/api/posts/:id/comments', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: 'Server error', details: error.message });
   }
-});
+});*/
 
 
 // create a read model that clarify post is read or not
-app.post('/api/posts/read', async (req, res) => {
+/*app.post('/api/posts/read', async (req, res) => {
   try {
     const postId = parseInt(req.body.postId)
     if(!postId){
@@ -1783,11 +1776,11 @@ app.post('/api/posts/read', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: 'Server error', details: error.message })
   }
-})
+})*/
 
 
 // get how many users read post
-app.get('/api/posts/:id/read', async (req, res) => {
+/*app.get('/api/posts/:id/read', async (req, res) => {
   try {
     const postId = parseInt(req.params.id)
     if(!postId){
@@ -1807,11 +1800,11 @@ app.get('/api/posts/:id/read', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: 'Server error', details: error.message })
   }
-})
+})*/
 
 
 // update user
-app.put('/api/users/:id', authenticateToken, async (req, res) => {
+/*app.put('/api/users/:id', authenticateToken, async (req, res) => {
   try {
     const userId = parseInt(req.params.id)
     const firstName = req.body.firstName
@@ -1836,11 +1829,11 @@ app.put('/api/users/:id', authenticateToken, async (req, res) => {
 
     res.status(500).json({ error: 'Server error', details: error.message })
   }
-})
+})*/
 
 
 // get user liked posts
-app.get('/api/user/:userId/liked-posts', authenticateToken, async (req, res) => {
+/*app.get('/api/user/:userId/liked-posts', authenticateToken, async (req, res) => {
   try {
     const userId = parseInt(req.params.userId)
     if(!userId){
@@ -1867,18 +1860,18 @@ app.get('/api/user/:userId/liked-posts', authenticateToken, async (req, res) => 
   } catch (error) {
     res.status(500).json({ error: 'Server error', details: error.message });
   }
-})
+})*/
 
 
 // get user saved posts
-app.get('/api/user/:userId/saved-posts', authenticateToken, async (req, res) => {
+/*app.get('/api/user/:userId/saved-posts', authenticateToken, async (req, res) => {
   try {
     const userId = parseInt(req.params.userId)
     if(!userId){
       return res.status(400).json({ error: 'User id is required' });
     }
 
-    const saved = await prisma.save.findMany({
+    const saved = await prisma.save.findMany({ 
       where: { userId: userId },
       select: {
         post: {
@@ -1899,11 +1892,11 @@ app.get('/api/user/:userId/saved-posts', authenticateToken, async (req, res) => 
   } catch (error) {
     res.status(500).json({ error: 'Server error', details: error.message });
   }
-})
+})*/
 
 
 // get user shared posts
-app.get('/api/user/:userId/shared-posts', authenticateToken, async (req, res) => {
+/*app.get('/api/user/:userId/shared-posts', authenticateToken, async (req, res) => {
   try {
     const userId = parseInt(req.params.userId)
     if(!userId){
@@ -1932,10 +1925,10 @@ app.get('/api/user/:userId/shared-posts', authenticateToken, async (req, res) =>
     res.status(500).json({ error: 'Server error', details: error.message });
   }
 })
-
+*/
 
 // get user commented posts
-app.get('/api/user/:userId/commented-posts', authenticateToken, async (req, res) => {
+/*app.get('/api/user/:userId/commented-posts', authenticateToken, async (req, res) => {
   try {
     const userId = parseInt(req.params.userId)
     if(!userId){
@@ -1967,11 +1960,11 @@ app.get('/api/user/:userId/commented-posts', authenticateToken, async (req, res)
   } catch (error) {
     res.status(500).json({ error: 'Server error', details: error.message });
   }
-})
+})*/
 
 
 // get user read posts
-app.get('/api/user/:userId/read-posts', authenticateToken, async (req, res) => {
+/*app.get('/api/user/:userId/read-posts', authenticateToken, async (req, res) => {
   try {
     const userId = parseInt(req.params.userId)
     if(!userId){
@@ -2001,7 +1994,7 @@ app.get('/api/user/:userId/read-posts', authenticateToken, async (req, res) => {
   }
 })
 
-
+*/
 
 
 
