@@ -122,8 +122,7 @@ router.get('/profile', authenticateToken, async (req, res) => {
                 firstName: true,
                 lastName: true,
                 createdAt: true,
-                updatedAt: true,
-		avatar: true
+                updatedAt: true
             }
         });
         
@@ -236,8 +235,7 @@ router.get('/:username', authenticateToken, async (req, res) => {
 	        firstName: true,
 	        lastName: true,
 	        createdAt: true,
-	        email: true,
-		avatar: true
+	        email: true
             }
         })
 
@@ -480,10 +478,9 @@ router.get('/:username/posts', authenticateToken, async (req, res) => {
 
 
 const uploadsDir = './uploads/profiles';
-if(!fs.existsSync(uploadsDir)){
-    fs.mkdirSync(uploadsDir, { recursive: true })
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
 }
-
 
 // Configure multer for profile image storage
 const storage = multer.diskStorage({
@@ -491,179 +488,162 @@ const storage = multer.diskStorage({
         cb(null, uploadsDir);
     },
     filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + randomBytes(6).toString('hex')
-	const fileExtension = path.extname(file.originalname);
-	cb(null, `profile-${req.user.userId}-${uniqueSuffix}${fileExtension}`);
+        const uniqueSuffix = Date.now() + '-' + crypto.randomBytes(6).toString('hex');
+        const fileExtension = path.extname(file.originalname);
+        cb(null, `profile-${req.user.userId}-${uniqueSuffix}${fileExtension}`);
     }
-})
-
-
-
-// file filter for images only
-const fileFilter = (req, file, cb) => {
-    const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-
-    if(allowedMimeTypes.includes(file.mimetype)){
-        cb(null, true)
-    } else {
-        cb(new Error('Invalid file type. Only JPEG, JPG, PNG and WEBP images are allowed.'), false)
-    }
-}
-
-
-
-// configure multer
-const upload = multer({
-  storage: storage,
-  fileFilter: fileFilter,
-  limits: {
-    fileSize: 2 * 1024 * 1024, // 2MB limit for profile images
-  }
 });
 
+// File filter for images only
+const fileFilter = (req, file, cb) => {
+    const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (allowedMimeTypes.includes(file.mimetype)) {
+        cb(null, true);
+    } else {
+        cb(new Error('Invalid file type. Only JPEG, JPG, PNG and WEBP images are allowed.'), false);
+    }
+};
 
+// Configure multer
+const upload = multer({
+    storage: storage,
+    fileFilter: fileFilter,
+    limits: {
+        fileSize: 2 * 1024 * 1024, // 2MB limit for profile images
+    }
+});
 
 // Helper function to delete old profile image file
 const deleteImageFile = (filename) => {
-  if (filename) {
-    const filePath = path.join(uploadsDir, filename);
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
+    if (filename) {
+        const filePath = path.join(uploadsDir, filename);
+        if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+        }
     }
-  }
 };
 
-
-
-
-
 // 1. Upload/Update Profile Image API
-router.post('/upload', authenticateToken, upload.single('avatar'), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: 'No profile image provided'
-      });
+router.post('/upload', upload.single('avatar'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({
+                success: false,
+                message: 'No profile image provided'
+            });
+        }
+        
+        // Use userId from authenticated user, not from query params for security
+        const userId = req.user.userId;
+        
+        // Check if user exists
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { id: true, avatar: true }
+        });
+        
+        if (!user) {
+            // Delete uploaded file if user doesn't exist
+            deleteImageFile(req.file.filename);
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+        
+        // Delete old profile image if exists
+        if (user.avatar) {
+            deleteImageFile(user.avatar);
+        }
+        
+        // Update user with new profile image
+        const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: {
+                avatar: req.file.filename,
+                updatedAt: new Date()
+            },
+            select: {
+                id: true,
+                email: true,
+                name: true,
+                avatar: true,
+                updatedAt: true
+            }
+        });
+        
+        res.status(200).json({
+            success: true,
+            message: 'Profile image uploaded successfully',
+            data: {
+                user: updatedUser,
+                imageUrl: `${req.protocol}://${req.get('host')}/api/profile/image/${updatedUser.id}`
+            }
+        });
+    } catch (error) {
+        // Delete uploaded file on error
+        if (req.file) {
+            deleteImageFile(req.file.filename);
+        }
+        
+        console.error('Upload error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error during upload',
+            error: error.message
+        });
     }
-
-    const userId = req.user.userId;
-
-    // Check if user exists
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true, avatar: true }
-    });
-
-    if (!user) {
-      // Delete uploaded file if user doesn't exist
-      deleteImageFile(req.file.filename);
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
-    }
-
-    // Delete old profile image if exists
-    if (user.avatar) {
-      deleteImageFile(user.avatar);
-    }
-
-    // Update user with new profile image
-    const updatedUser = await prisma.user.update({
-      where: { id: userId },
-      data: {
-        avatar: req.file.filename,
-        updatedAt: new Date()
-      },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        avatar: true,
-        updatedAt: true
-      }
-    });
-
-    res.status(200).json({
-      success: true,
-      message: 'Profile image uploaded successfully',
-      data: {
-        user: updatedUser,
-        imageUrl: `${req.protocol}://${req.get('host')}/api/profile/image/${updatedUser.id}`
-      }
-    });
-
-  } catch (error) {
-    // Delete uploaded file on error
-    if (req.file) {
-      deleteImageFile(req.file.filename);
-    }
-    
-    console.error('Upload error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error during upload',
-      error: error.message
-    });
-  }
 });
 
-
-
-// delete profile image api
+// Delete profile image API
 router.delete('/image', authenticateToken, async (req, res) => {
-  try {
-    const userId = req.user.userId;
-
-    // Get user with current profile image
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true, avatar: true }
-    });
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
+    try {
+        const userId = req.user.userId;
+        
+        // Get user with current profile image
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { id: true, avatar: true }
+        });
+        
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+        
+        if (!user.avatar) {
+            return res.status(404).json({
+                success: false,
+                message: 'No profile image to delete'
+            });
+        }
+        
+        // Delete file from storage
+        deleteImageFile(user.avatar);
+        
+        // Update database to remove profile image reference
+        await prisma.user.update({
+            where: { id: userId },
+            data: {
+                avatar: null,
+                updatedAt: new Date()
+            }
+        });
+        
+        res.status(200).json({
+            success: true,
+            message: 'Profile image deleted successfully'
+        });
+    } catch (error) {
+        console.error('Delete image error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error deleting image',
+            error: error.message
+        });
     }
-
-    if (!user.avatar) {
-      return res.status(404).json({
-        success: false,
-        message: 'No profile image to delete'
-      });
-    }
-
-    // Delete file from storage
-    deleteImageFile(user.avatar);
-
-    // Update database to remove profile image reference
-    await prisma.user.update({
-      where: { id: userId },
-      data: {
-        avatar: null,
-        updatedAt: new Date()
-      }
-    });
-
-    res.status(200).json({
-      success: true,
-      message: 'Profile image deleted successfully'
-    });
-
-  } catch (error) {
-    console.error('Delete image error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error deleting image',
-      error: error.message
-    });
-  }
 });
-
-
-
 
 module.exports = router
