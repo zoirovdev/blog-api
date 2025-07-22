@@ -15,18 +15,15 @@ const postRoutes = require('./routes/postRoutes.js')
 const PORT = process.env.PORT || 8000;
 
 
-// Apply CORS middleware
-app.use(cors());
 
+app.use(cors()); // Apply CORS middleware
+app.use(express.json()); // Middleware to parse JSON bodies
+app.use(requestLogger); // Log all requests
+app.use(generalLimiter); // Apply general rate limiting to all routes
 
-// Middleware to parse JSON bodies
-app.use(express.json());
 
 app.use('/api/users', userRoutes)
 app.use('/api/posts', postRoutes)
-
-app.use(requestLogger); // Log all requests
-app.use(generalLimiter); // Apply general rate limiting to all routes
 
 // Swagger documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
@@ -57,10 +54,8 @@ app.get('/', (req, res) => {
 
 
 
-// 404 handler for undefined routes
+// error handlers
 app.use(notFoundHandler);
-
-// Global error handler (must be last)
 app.use(errorHandler);
 
 app.listen(PORT, () => {
